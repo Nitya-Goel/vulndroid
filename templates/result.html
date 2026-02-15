@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan Results - VulnDroid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen text-white">
+
+<div class="container mx-auto px-6 py-10">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+        <h1 class="text-4xl font-bold text-red-500 mb-2 animate-pulse">
+            🔍 VulnDroid Security Report
+        </h1>
+        <p class="text-gray-400">Advanced Mobile App Vulnerability Analysis</p>
+    </div>
+
+    <!-- App Info Card -->
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl mb-10">
+        <h2 class="text-2xl font-semibold mb-4 text-red-400">Application Information</h2>
+        <p><strong>Package:</strong> {{ info.package_name }}</p>
+        <p><strong>Version:</strong> {{ info.version_name }}</p>
+        <p><strong>Min SDK:</strong> {{ info.min_sdk }}</p>
+        <p><strong>Target SDK:</strong> {{ info.target_sdk }}</p>
+    </div>
+
+    <!-- Risk Meter Section -->
+    <div class="grid md:grid-cols-2 gap-8 mb-10">
+
+        <!-- Risk Score with Speedometer -->
+        <div class="bg-gray-800/60 backdrop-blur-lg p-8 rounded-2xl shadow-lg text-center">
+            <h2 class="text-2xl font-bold text-red-400 mb-6">Risk Score</h2>
+
+            <!-- Speedometer Container -->
+            <div class="relative mx-auto mb-4" style="width: 300px; height: 200px;">
+                <canvas id="speedometer" width="300" height="200"></canvas>
+            </div>
+
+            <p class="mt-4 text-4xl font-bold" id="riskScoreText">{{ risk_score }}</p>
+            <p class="mt-2 text-xl font-semibold text-red-300" id="riskLevelText">
+                {{ risk_level }}
+            </p>
+        </div>
+
+        <!-- Scan Summary -->
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-xl">
+            <h2 class="text-2xl font-semibold text-red-400 mb-4">Scan Summary</h2>
+            <p>Total Issues: <span class="font-bold">{{ issues|length }}</span></p>
+            <p>Risk Score: <span class="font-bold">{{ risk_score }}</span></p>
+
+            <a href="/download"
+               class="mt-6 inline-block bg-red-500 hover:bg-red-600 px-6 py-3 rounded-xl font-semibold transition duration-300 transform hover:scale-105">
+                ⬇ Download Full Report
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Findings Section -->
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl">
+        <h2 class="text-2xl font-semibold text-red-400 mb-6">Security Findings</h2>
+
+        {% if issues %}
+            <div class="space-y-4">
+                {% for issue in issues %}
+                <div class="bg-gray-700 p-4 rounded-xl shadow-md hover:scale-105 transition duration-300">
+                    <h3 class="font-bold text-lg mb-2">{{ issue.title }}</h3>
+                    <p class="text-gray-300 mb-2">{{ issue.description }}</p>
+
+                    {% if issue.severity == "High" %}
+                        <span class="bg-red-600 px-3 py-1 rounded-full text-sm">High</span>
+                    {% elif issue.severity == "Medium" %}
+                        <span class="bg-yellow-500 px-3 py-1 rounded-full text-sm text-black">Medium</span>
+                    {% else %}
+                        <span class="bg-green-500 px-3 py-1 rounded-full text-sm text-black">Low</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-green-400 font-semibold text-lg">✅ No vulnerabilities detected.</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Hidden input to pass risk score to JavaScript -->
+<input type="hidden" id="riskScoreValue" value="{{ risk_score }}">
+
+<script>
+(function() {
+    // Get risk score from hidden input for safer parsing
+    const riskScoreInput = document.getElementById('riskScoreValue');
+    const riskScore = parseInt(riskScoreInput.value) || 0;
+    const maxScore = 100;
+
+    console.log('Risk Score:', riskScore); // Debug log
+
+    // Speedometer Drawing Function
+    function drawSpeedometer() {
+        const canvas = document.getElementById('speedometer');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height - 20;
+        const radius = 120;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw background arc (gauge track)
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI, false);
+        ctx.lineWidth = 25;
+        ctx.strokeStyle = '#1f2937';
+        ctx.stroke();
+
+        // Color segments for speedometer
+        const segments = [
+            { start: 0, end: 0.2, color: '#10b981' },      // Green - Very Low
+            { start: 0.2, end: 0.4, color: '#84cc16' },    // Light Green - Low  
+            { start: 0.4, end: 0.6, color: '#eab308' },    // Yellow - Medium
+            { start: 0.6, end: 0.8, color: '#f97316' },    // Orange - High
+            { start: 0.8, end: 1, color: '#ef4444' }       // Red - Very High
+        ];
+
+        // Draw colored segments
+        segments.forEach(function(segment) {
+            ctx.beginPath();
+            const startAngle = Math.PI + (segment.start * Math.PI);
+            const endAngle = Math.PI + (segment.end * Math.PI);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
+            ctx.lineWidth = 25;
+            ctx.strokeStyle = segment.color;
+            ctx.stroke();
+        });
+
+        // Calculate needle angle based on risk score
+        const percentage = Math.min(Math.max(riskScore / maxScore, 0), 1);
+        const needleAngle = Math.PI + (percentage * Math.PI);
+
+        // Draw needle
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(needleAngle);
+        
+        // Needle triangle
+        ctx.beginPath();
+        ctx.moveTo(0, -8);
+        ctx.lineTo(radius - 15, 0);
+        ctx.lineTo(0, 8);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#374151';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.restore();
+
+        // Draw center circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
+        ctx.fillStyle = '#374151';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw tick marks and labels
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        
+        for (let i = 0; i <= 5; i++) {
+            const angle = Math.PI + (i / 5) * Math.PI;
+            const x1 = centerX + (radius - 35) * Math.cos(angle);
+            const y1 = centerY + (radius - 35) * Math.sin(angle);
+            
+            const label = (i * 20).toString();
+            ctx.fillText(label, x1, y1 + 5);
+        }
+    }
+
+    // Draw speedometer when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', drawSpeedometer);
+    } else {
+        drawSpeedometer();
+    }
+
+    // Redraw on resize
+    window.addEventListener('resize', drawSpeedometer);
+})();
+</script>
+
+</body>
+</html>

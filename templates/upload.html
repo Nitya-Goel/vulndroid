@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VulnDroid Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        
+        body {
+            height: 100vh;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Floating Animation Background */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 0, 80, 0.2);
+            border-radius: 50%;
+            top: -100px;
+            left: -100px;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 50%;
+            bottom: -100px;
+            right: -100px;
+            animation: float 8s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(30px); }
+        }
+
+        .card {
+            position: relative;
+            width: 500px;
+            padding: 40px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        p {
+            color: #ccc;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-box {
+            border: 2px dashed #ff4b5c;
+            border-radius: 15px;
+            padding: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: white;
+        }
+
+        .upload-box:hover {
+            background: rgba(255, 75, 92, 0.1);
+            transform: scale(1.02);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            margin-top: 25px;
+            padding: 12px 35px;
+            border-radius: 50px;
+            border: none;
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 75, 43, 0.4);
+        }
+
+        .spinner {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .spinner div {
+            width: 15px;
+            height: 15px;
+            background-color: white;
+            border-radius: 100%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .spinner div:nth-child(1) { animation-delay: -0.32s; }
+        .spinner div:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+    <style>
+    /* Overlay */
+    .loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        animation: fadeIn 0.4s ease-in-out;
+    }
+
+    /* Loader Container */
+    .loader-container {
+        text-align: center;
+        color: white;
+    }
+
+    /* Scanner Box */
+    .scanner-animation {
+        width: 250px;
+        height: 150px;
+        border: 2px solid #ef4444;
+        border-radius: 12px;
+        margin: 0 auto 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Scan Line */
+    .scan-line {
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #ef4444, transparent);
+        position: absolute;
+        top: 0;
+        animation: scanMove 2s linear infinite;
+    }
+
+    /* Text Animation */
+    .loader-container h2 {
+        margin-bottom: 10px;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes scanMove {
+        0% { top: 0; }
+        100% { top: 100%; }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    </style>
+
+</head>
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loader-container">
+        <div class="scanner-animation">
+            <div class="scan-line"></div>
+        </div>
+        <h2>Analyzing APK...</h2>
+        <p>Please wait while we scan for vulnerabilities</p>
+    </div>
+</div>
+
+<body>
+
+    <div class="card">
+        <h1>🛡 VulnDroid Scanner</h1>
+        <p>Upload your APK file to perform deep security analysis</p>
+
+        <form action="/scan" method="POST" enctype="multipart/form-data" onsubmit="showLoader()">
+
+            <label class="upload-box">
+                📂 Click to Select APK File
+                <input type="file" name="apkfile" required>
+            </label>
+
+            <button type="submit" class="btn">Scan Now</button>
+
+            <div class="spinner" id="loader">
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+
+        </form>
+    </div>
+<script>
+    const input = document.getElementById("apkInput");
+    const box = document.getElementById("uploadBox");
+
+    input.addEventListener("change", function () {
+        if (input.files.length > 0) {
+            box.innerHTML = "✅ " + input.files[0].name;
+            box.style.background = "#1f2937";
+            box.style.border = "2px solid #22c55e";
+            box.style.color = "#22c55e";
+        }
+    });
+</script>
+<script>
+function showLoader() {
+    document.getElementById("loader").style.display = "block";
+}
+const form = document.querySelector("form");
+const overlay = document.getElementById("loadingOverlay");
+
+form.addEventListener("submit", function () {
+    overlay.style.display = "flex";
+});
+
+
+</script>
+
+
+</body>
+</html>
