@@ -5,6 +5,10 @@ from core.apk_loader import APKLoader
 from core.manifest_analyzer import ManifestAnalyzer
 from core.code_analyzer import CodeAnalyzer
 from core.severity_engine import SeverityEngine
+import os
+
+
+
 
 app = Flask(__name__, template_folder="templates")
 
